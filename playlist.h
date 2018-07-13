@@ -26,7 +26,7 @@
 
 class Playlist;
 
-typedef boost::shared_ptr<Playlist> PlaylistPtr;
+typedef std::shared_ptr<Playlist> PlaylistPtr;
 
 class Playlist : public automation::ThreadSafeProto<automation::Playlist> {
  public:

@@ -14,7 +14,6 @@
  *   limitations under the License.
  */
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <fstream>
 #include <glog/logging.h>
 #include <gflags/gflags.h>

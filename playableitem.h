@@ -18,7 +18,6 @@
 
 #include <string>
 #include "sqlite3.h"
-#include <boost/shared_ptr.hpp>
 #include "playlist.pb.h"
 #include "playableitem.pb.h"
 #include "protostore.h"
@@ -31,7 +30,7 @@
 #endif
 
 class PlayableItem;
-typedef boost::shared_ptr<PlayableItem> PlayableItemPtr;
+typedef std::shared_ptr<PlayableItem> PlayableItemPtr;
 
 class PlayableItem : public automation::ThreadSafeProto<automation::PlayableItem> {
  public:

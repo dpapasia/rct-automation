@@ -21,7 +21,6 @@
 #include "playlist.h"
 #include "mplayersession.h"
 #include <string>
-#include <boost/shared_ptr.hpp>
 
 class RequirementEngine;
 
@@ -64,7 +63,7 @@ class AutomationState {
   bool get_manual_override() { return override_; } 
 
   static AutomationState *get_state() { return AutomationState::state_; };
-  boost::shared_ptr<RequirementEngine> get_requirement_engine() const { return re_; }
+  std::shared_ptr<RequirementEngine> get_requirement_engine() const { return re_; }
   PlaylistPtr get_override_playlist() { return override_playlist_; }
   PlaylistPtr get_bumperlist() { return bumperlist_; }
 
@@ -78,7 +77,7 @@ class AutomationState {
 
   static AutomationState* state_;
   sqlite3* const db_;
-  boost::shared_ptr<RequirementEngine> const re_;
+  std::shared_ptr<RequirementEngine> const re_;
 
   static __thread MplayerSession* player_;
   MplayerSession* main_player_;

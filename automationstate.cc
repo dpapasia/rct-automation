@@ -39,7 +39,7 @@ __thread MplayerSession *AutomationState::player_;
 
 AutomationState::AutomationState(sqlite3* db, MplayerSession* player) :
   db_(db),
-  re_(boost::shared_ptr<RequirementEngine>(new RequirementEngine(db))),
+  re_(std::shared_ptr<RequirementEngine>(new RequirementEngine(db))),
   main_player_(player),
   override_(FLAGS_defaulthuman),
   override_playlist_(new Playlist(db)),
