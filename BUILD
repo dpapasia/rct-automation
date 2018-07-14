@@ -144,7 +144,7 @@ cc_binary(
 cc_binary(
   name = "automation",
   srcs = ["automation.cc"],
-  deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags", ":webapi"],
+  deps = [":actions", ":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags", ":webapi"],
   linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lpion", "-llog4cpp", "-lboost_thread"],
 )
 

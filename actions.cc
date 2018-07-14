@@ -39,7 +39,9 @@ namespace automator {
 class ScheduleCommand : public RequirementEngine::Registrar {
   virtual void handle_command(const time_t &deadline, const automation::Requirement& command) = 0;
   RequirementEngine::Registrar::callback get_callback() {
-    return std::bind<void>(&ScheduleCommand::handle_command, this, std::placeholders::_1, std::placeholders::_2);
+    return [this](const time_t &deadline, const automation::Requirement &command) {
+      return this->handle_command(deadline, command);
+    };
   }
 };
 
