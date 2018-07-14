@@ -31,8 +31,9 @@ void WebCommand::handle_command(HTTPRequestPtr http_request, const pion::tcp::co
   pion::http::response_writer_ptr
     writer(pion::http::response_writer::create(tcp_conn,
                                       *http_request,
-                                      boost::bind(&pion::tcp::connection::finish,
-                                                  tcp_conn)));
+                                      [&tcp_conn](const boost::system::error_code&) {
+                                        tcp_conn->finish();
+                                      }));
   pion::http::response& r = writer->get_response();
   VLOG(60) << "Resource: " << http_request->get_original_resource();
   VLOG(60) << "Query string: " << http_request->get_query_string();

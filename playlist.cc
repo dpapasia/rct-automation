@@ -28,8 +28,6 @@
 #include "playlist.pb.h"
 #include "protostore.h"
 
-#include <boost/bind.hpp>
-
 using automation::ProtoStore;
 
 automation::Playlists Playlist::FetchAllLists(sqlite3 *db) {
