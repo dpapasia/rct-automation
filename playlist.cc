@@ -67,11 +67,11 @@ void Playlist::PopWithTimelimit(int seconds, PlayableItem *result) {
   LOG(INFO) << "In playlist " << canonical_.name() << " for " << seconds << " of time with up to "
             << size_locked() << " choices";
 
-  for (list_type::iterator it = songlist->begin(); it != songlist->end(); ++it) {
-    if (*it == 0) { continue; }
-    result->Fetch(*it);
+  for (int64& song : *songlist) {
+    if (song == 0) { continue; }
+    result->Fetch(song);
     if (result->data().playableitemid() && result->data().duration() <= seconds) {
-      *it = 0;
+      song = 0;
       return;
     }
   }

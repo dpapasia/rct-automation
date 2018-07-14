@@ -78,8 +78,7 @@ bool MessageStore::Load(Message* lookup) {
   const Reflection* reflection = lookup->GetReflection();
   vector<const FieldDescriptor *> fields;
   reflection->ListFields(*lookup, &fields);
-  for (vector<const FieldDescriptor *>::iterator it = fields.begin() ; it != fields.end(); ++it) {
-    const FieldDescriptor* fd = *it;
+  for (const FieldDescriptor* fd : fields) {
     CHECK(!fd->is_repeated()) << "Lookups on repeated fields disallowed";
     query += fd->name() + " = ?";
   }
@@ -118,8 +117,7 @@ int MessageStore::InsertOrReplace(Message* value, std::string cmd) {
   vector<const FieldDescriptor *> fields;
   vector<std::string> field_names, fmt_string, update_portion;
   reflection->ListFields(*value, &fields);
-  for (vector<const FieldDescriptor *>::iterator it = fields.begin() ; it != fields.end(); ++it) {
-    const FieldDescriptor* fd = *it;
+  for (const FieldDescriptor* fd : fields) {
     if (fd->is_repeated()) {
       continue; // we handle these later
     }
@@ -184,8 +182,7 @@ int MessageStore::InsertOrReplace(Message* value, std::string cmd) {
     reflection->SetInt64(value, value->GetDescriptor()->field(0), local_id);
   } 
 
-  for (vector<const FieldDescriptor *>::iterator it = fields.begin(); it != fields.end(); ++it) {
-    const FieldDescriptor* fd = *it;
+  for (const FieldDescriptor* fd : fields) {
     if (!fd->is_repeated()) {
       continue; // we handled these in the root insert
     }
@@ -280,8 +277,8 @@ bool MessageStore::ProtoFromRows(sqlite3_stmt *ps, Message *result) {
         blob = (char *)sqlite3_column_blob(ps, i);
         stringblob = string(blob, sqlite3_column_bytes(ps, i));
         boost::algorithm::split(ids, stringblob, boost::is_any_of(","));
-        for (vector<string>::iterator it = ids.begin(); it != ids.end(); ++it) {
-          reflection->AddInt64(result, fd, atoll(it->c_str()));
+        for (const string& id : ids) {
+          reflection->AddInt64(result, fd, std::stoll(id));
         }
         break;
       case FieldDescriptor::TYPE_STRING:

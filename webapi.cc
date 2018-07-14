@@ -229,7 +229,7 @@ class PlaylistCommand : public WebCommand {
     if (!params_.count("id")) {
       return PlaylistPtr();
     }
-    sqlite3_int64 id = atoll(params_.equal_range("id").first->second.c_str());
+    sqlite3_int64 id = std::stoll(params_.equal_range("id").first->second);
 
     PlaylistPtr copy(new Playlist(db));
     if (copy->Fetch(id)) {
