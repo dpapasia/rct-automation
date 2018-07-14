@@ -14,7 +14,6 @@
  *   limitations under the License.
  */
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <fstream>
 #include <glog/logging.h>
 #include <gflags/gflags.h>
@@ -25,6 +24,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <pion/http/server.hpp>
+#include <pion/scheduler.hpp>
 
 #include "db.h"
 #include "base.h"
@@ -120,33 +121,33 @@ int main(int argc, char **argv) {
     automation.get_requirement_engine()->HandleReboot();
   }
 
-  HTTPServerPtr webapi_server;
-  PionSingleServiceScheduler scheduler;
+  pion::http::server_ptr webapi_server;
+  pion::single_service_scheduler scheduler;
   CHECK(!FLAGS_secure || (!FLAGS_ssl_key.empty() && !FLAGS_ssl_crt.empty())) << "Must specify --nosecure or (--ssl_key and --ssl_cert)";
 
   if (FLAGS_webapi) {
     boost::asio::ip::tcp::endpoint endpoint;
     endpoint.address(boost::asio::ip::address::from_string(FLAGS_interface));
     endpoint.port(FLAGS_port);
-    scheduler.setNumThreads(FLAGS_threadcount);
-    webapi_server.reset(new HTTPServer(scheduler, endpoint));
+    scheduler.set_num_threads(FLAGS_threadcount);
+    webapi_server.reset(new pion::http::server(scheduler, endpoint));
     if (!FLAGS_ssl_key.empty()) {
-      webapi_server->setSSLFlag(true);
+      webapi_server->set_ssl_flag(true);
       if (!FLAGS_ssl_ca.empty()) {
-        webapi_server->getSSLContext().load_verify_file(FLAGS_ssl_ca);
+        webapi_server->get_ssl_context_type().load_verify_file(FLAGS_ssl_ca);
       }
-      webapi_server->getSSLContext().use_certificate_file(FLAGS_ssl_crt, boost::asio::ssl::context::pem);
-      webapi_server->getSSLContext().use_private_key_file(FLAGS_ssl_key, boost::asio::ssl::context::pem);
-      webapi_server->getSSLContext().set_options(boost::asio::ssl::context::default_workarounds
+      webapi_server->get_ssl_context_type().use_certificate_file(FLAGS_ssl_crt, boost::asio::ssl::context::pem);
+      webapi_server->get_ssl_context_type().use_private_key_file(FLAGS_ssl_key, boost::asio::ssl::context::pem);
+      webapi_server->get_ssl_context_type().set_options(boost::asio::ssl::context::default_workarounds
                 | boost::asio::ssl::context::no_sslv2
                 | boost::asio::ssl::context::single_dh_use);
       if (FLAGS_secure) {
-        webapi_server->getSSLContext().set_verify_mode(boost::asio::ssl::context::verify_peer | boost::asio::ssl::context::verify_fail_if_no_peer_cert);
+        webapi_server->get_ssl_context_type().set_verify_mode(boost::asio::ssl::context::verify_peer | boost::asio::ssl::context::verify_fail_if_no_peer_cert);
       }
     }
     WebAPI::Registrar::CallbackMap &cm = WebAPI::Registrar::get_callbackmap();
-    for (WebAPI::Registrar::CallbackMap::iterator it = cm.begin(); it != cm.end(); ++it) {
-      webapi_server->addResource(it->first, it->second);
+    for (const auto& callback_pair : cm) {
+      webapi_server->add_resource(callback_pair.first, callback_pair.second);
     }
 
     try {

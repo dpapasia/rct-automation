@@ -18,7 +18,6 @@
 
 #include <string>
 #include "sqlite3.h"
-#include "playlist.pb.h"
 #include "playableitem.pb.h"
 #include "protostore.h"
 #include "base.h"

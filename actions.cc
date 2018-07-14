@@ -30,7 +30,6 @@
 #include <glog/logging.h>
 #include "registerable-inl.h"
 #include <boost/tokenizer.hpp>
-#include <boost/bind.hpp>
 
 DEFINE_string(legalid, "legalid", "Name of playlist that contains legal IDs.");
 DEFINE_int32(legalid_max_length, 60, "Maximium length of legal ID to consider playing.");
@@ -40,7 +39,7 @@ namespace automator {
 class ScheduleCommand : public RequirementEngine::Registrar {
   virtual void handle_command(const time_t &deadline, const automation::Requirement& command) = 0;
   RequirementEngine::Registrar::callback get_callback() {
-    return boost::bind<void>(&ScheduleCommand::handle_command, this, _1, _2);
+    return std::bind<void>(&ScheduleCommand::handle_command, this, std::placeholders::_1, std::placeholders::_2);
   }
 };
 

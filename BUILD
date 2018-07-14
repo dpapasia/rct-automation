@@ -19,10 +19,12 @@ proto_library(
 proto_library(
   name = "playerstate_proto",
   srcs = ["playerstate.proto"],
+  deps = [":playableitem_proto"],
 )
 proto_library(
   name = "playlist_proto",
   srcs = ["playlist.proto"],
+  deps = [":playableitem_proto"],
 )
 proto_library(
   name = "protostore_proto",
@@ -31,6 +33,7 @@ proto_library(
 proto_library(
   name = "requirement_proto",
   srcs = ["requirement.proto"],
+  deps = [":playlist_proto", ":playableitem_proto"],
 )
 proto_library(
   name = "sql_proto",
@@ -63,68 +66,86 @@ cc_proto_library(
 
 cc_library(
   name = "actions",
-  srcs = ["actions.cc"]
+  srcs = ["actions.cc"],
+  deps = [":base", ":db", ":automationstate"],
+  alwayslink = 1,
 )
 cc_library(
   name = "db",
   srcs = ["db.cc"],
   hdrs = ["db.h"],
-  deps = ["@com_github_glog_glog//:glog"],
-)
-cc_library(
-  name = "base",
-  hdrs = ["base.h"],
+  deps = ["@com_github_glog_glog//:glog", ":playlist", ":playlist_cc_proto", ":protostore"],
 )
 cc_library(
   name = "automationstate",
   srcs = ["automationstate.cc"],
   hdrs = ["automationstate.h"],
-  deps = [":base", ":playlist", ":playableitem"],
+  deps = [":base", ":playlist", ":mplayersession", ":requirementengine"],
 
 )
 cc_library(
   name = "http",
   srcs = ["http.cc"],
   hdrs = ["http.h"],
+  deps = [":base"],
 )
+cc_library(
+  name = "base",
+  hdrs = ["registerable-inl.h", "base.h"],
+  deps = ["@com_github_glog_glog//:glog", "@com_google_protobuf//:protobuf"],
+)
+
 cc_library(
   name = "mplayersession",
   srcs = ["mplayersession.cc"],
   hdrs = ["mplayersession.h"],
-  deps = [":playableitem"],
+  deps = [":playerstate_cc_proto", ":playableitem", ":protostore"],
 )
 cc_library(
   name = "playableitem",
   srcs = ["playableitem.cc"],
   hdrs = ["playableitem.h"],
-  deps = [":playableitem_cc_proto", ":playlist_cc_proto"]
+  deps = [":playableitem_cc_proto", ":protostore", ":base"]
 )
 cc_library(
   name = "playlist",
   srcs = ["playlist.cc"],
   hdrs = ["playlist.h"],
+  deps = [":base", ":playableitem", ":playlist_cc_proto"],
+)
+cc_library(
+  name = "messagestore",
+  hdrs = ["messagestore.h"],
+  srcs = ["messagestore.cc"],
+  deps = [":base"],
 )
 cc_library(
   name = "protostore",
   hdrs = ["protostore.h"],
-  deps = [":protostore_cc_proto"],
+  deps = [":protostore_cc_proto", ":messagestore"],
 )
 cc_library(
   name = "requirementengine",
   srcs = ["requirementengine.cc"],
   hdrs = ["requirementengine.h"],
-  deps = [":automationstate"],
+  deps = [":base", ":protostore", ":playerstate_cc_proto", ":requirement_cc_proto"],
 )
-
+cc_library(
+  name = "webapi",
+  srcs = ["webapi.cc"],
+  deps = [":automationstate", ":http", ":db", ":sql_cc_proto"],
+)
 cc_binary(
   name = "acmd",
   srcs = ["acmd-main.cc"],
-  deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags"]
+  deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags"],
+  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system"],
 )
 cc_binary(
   name = "automation",
   srcs = ["automation.cc"],
-  deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags"]
+  deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags", ":webapi"],
+  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lpion", "-llog4cpp", "-lboost_thread"],
 )
 
 

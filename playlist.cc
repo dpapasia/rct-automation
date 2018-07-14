@@ -23,15 +23,12 @@
 #include <glog/logging.h>
 #include <stdint.h>
 
-#include "automationstate.h"
 #include "playableitem.h"
 #include "playlist.h"
 #include "playlist.pb.h"
 #include "protostore.h"
 
 #include <boost/bind.hpp>
-
-#define INT64_MAX LLONG_MAX
 
 using automation::ProtoStore;
 

@@ -15,9 +15,6 @@
  */
 #include <boost/tokenizer.hpp>
 #include "playableitem.h"
-#include "playlist.h"
-#include "automationstate.h"
-#include "mplayersession.h"
 #include <glog/logging.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -27,7 +24,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "sqlite3.h"
-#include <boost/tr1/regex.hpp>
+#include <regex>
 #include <boost/weak_ptr.hpp>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -38,11 +35,8 @@
 #include <sys/types.h>
 #include <regex.h>
 #endif
-#include "playlist.pb.h"
 #include "playableitem.pb.h"
 #include "protostore.h"
-
-#define MAX(a,b) ((a>b)?a:b)
 
 bool PlayableItem::fetch(const std::string& filename) {
   boost::mutex::scoped_lock lock(mutex_);
@@ -131,15 +125,15 @@ int PlayableItem::CalculateDuration() {
     int status;
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    std::tr1::cmatch res;
-    std::tr1::regex rx("A:[ ]*([0-9.]*)");
+    std::cmatch res;
+    std::regex rx("A:[ ]*([0-9.]*)");
 
     while (fgets(buf, sizeof(buf), mplayer_stdout) != NULL) {
       std::string len(buf);
       tokenizer tokens(len, boost::char_separator<char>("\r"));
       for (tokenizer::const_iterator it = tokens.begin(); it != tokens.end(); ++it) {
-        if (std::tr1::regex_search(it->c_str(), res, rx)) {
-          duration = MAX(duration,ceil(strtod(res[1].str().c_str(), NULL)));
+        if (std::regex_search(it->c_str(), res, rx)) {
+          duration = std::max<double>(duration,ceil(strtod(res[1].str().c_str(), NULL)));
         }
       }
     }

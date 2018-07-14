@@ -19,10 +19,10 @@
 #include <exception>
 #include <gflags/gflags.h>
 #include <glog/logging.h>  
+#include <google/protobuf/util/json_util.h>
 #include "http.h"
 #include "mplayersession.h"
 #include <ostream>
-#include <pion/PionAlgorithms.hpp>
 #include "playableitem.h"
 #include "playlist.h"
 #include "requirementengine.h"
@@ -31,7 +31,6 @@
 #include "playlist.pb.h"
 #include "requirement.pb.h"
 #include "sql.pb.h"
-#include "json_protobuf.h"
 
 #include "protostore.h"
 
@@ -50,10 +49,10 @@ class OverrideCommand : public WebCommand {
   const std::string get_command() { return "/override"; }
   void handle_command(HTTPRequestPtr& request, HTTPResponseWriterPtr writer, const std::string& remote_user) {
     AutomationState *as = AutomationState::get_state();
-    if (request->getResource() == "/override/enable") {
+    if (request->get_resource() == "/override/enable") {
       writer->write("Override enabled\n");
       as->set_manual_override(true);
-    } else if (request->getResource() == "/override/disable") {
+    } else if (request->get_resource() == "/override/disable") {
       as->get_mainplayer()->Unpause();
       as->get_mainplayer()->SetSpeed(1.0);
       writer->write("Override disabled\n");
@@ -67,16 +66,16 @@ class RequirementsCommand : public WebCommand {
   void handle_command(HTTPRequestPtr& request, HTTPResponseWriterPtr writer, const std::string& remote_user) {
     AutomationState *as = AutomationState::get_state();
     DatabaseHandle db(DatabaseOpen());
-    if (request->getResource() == "/requirements/fetch") {
+    if (request->get_resource() == "/requirements/fetch") {
       automation::Schedule output;
       as->get_requirement_engine()->CopyTo(&output);
       ReturnMessage(output);
-    } else if(request->getResource() == "/requirements/update") {
+    } else if(request->get_resource() == "/requirements/update") {
       automation::Schedule update_request = LoadMessage<automation::Schedule>();
       VLOG(5) << "Updating with schedule " << update_request.DebugString();
       as->get_requirement_engine()->CopyFrom(update_request);
       as->get_requirement_engine()->Save();
-    } else if(request->getResource() == "/requirements/runonce") {
+    } else if(request->get_resource() == "/requirements/runonce") {
       RequirementEngine re_isolated(db);
       automation::Schedule run_now;
       run_now.add_schedule()->CopyFrom(LoadMessage<automation::Requirement>());
@@ -119,7 +118,7 @@ class SQLCommand : public WebCommand {
     if (!FLAGS_expose_sql) {
       return;
     }
-    const char *cmd = request_->getContent();
+    const char *cmd = request_->get_content();
     char *errmsg;
     DatabaseHandle db(DatabaseOpen());
     automation::SQLResult result;
@@ -141,13 +140,13 @@ class PlaylistCommand : public WebCommand {
   const std::string get_command() { return "/playlist"; }
   void handle_command(HTTPRequestPtr& request, HTTPResponseWriterPtr writer, const std::string& remote_user) {
     using automation::ProtoStore;
-    HTTPTypes::QueryParams& params = request->getQueryParams(); 
+    auto params = request->get_queries();
     DatabaseHandle db(DatabaseOpen());
     ProtoStore<automation::Playlist> pstore(db);
 
     PlaylistPtr ptr;
 
-    if (request->getResource().find("/playlist/fetch") != std::string::npos) {
+    if (request->get_resource().find("/playlist/fetch") != std::string::npos) {
       Playlist lookup(db);
       if ((ptr = FetchPlaylistFromParams(db)) && ptr.get()) {
         if (params_.count("alsosave")) {
@@ -165,9 +164,9 @@ class PlaylistCommand : public WebCommand {
       } else {
         LOG(INFO) << "Nope " << lookup.data().DebugString();
       }
-    } else if (request->getResource().find("/playlist/all") != std::string::npos) {
+    } else if (request->get_resource().find("/playlist/all") != std::string::npos) {
       ReturnMessage(Playlist::FetchAllLists(db));
-    } else if (request->getResource().find("/playlist/update") != std::string::npos) {
+    } else if (request->get_resource().find("/playlist/update") != std::string::npos) {
       automation::PlaylistMergeRequest update_request = LoadMessage<automation::PlaylistMergeRequest>();
       bool overwrite = false;
       if (params.count("overwrite")) {
@@ -193,7 +192,7 @@ class PlaylistCommand : public WebCommand {
         writer << "Invalid request.";
       }
     } else {
-      LOG(WARNING) << "Unknown resource " << request->getResource();
+      LOG(WARNING) << "Unknown resource " << request->get_resource();
     }
   }
   PlaylistPtr GetNewlist(sqlite3 *db) {
@@ -271,18 +270,18 @@ class PlayerCommand : public WebCommand {
   const std::string get_command() { return "/player"; }
   void handle_command(HTTPRequestPtr& request, HTTPResponseWriterPtr writer, const std::string& remote_user) {
     AutomationState *as = AutomationState::get_state();
-    if (request->getResource() == "/player/pause" && as->get_manual_override()) {
+    if (request->get_resource() == "/player/pause" && as->get_manual_override()) {
       as->get_mainplayer()->Pause();
-    } else if (request->getResource() == "/player/stop") {
+    } else if (request->get_resource() == "/player/stop") {
       as->get_mainplayer()->Stop();
-    } else if (request->getResource() == "/player/state") {
+    } else if (request->get_resource() == "/player/state") {
       automation::PlayerState ps;
       as->get_mainplayer()->MergeState(&ps);
       ReturnMessage(ps);
-    } else if (request->getResource() == "/player/speed") {
+    } else if (request->get_resource() == "/player/speed") {
       double speed = ArgumentOrDefault<double>("speed", 1.0);
       as->get_mainplayer()->SetSpeed(speed);
-    } else if (request->getResource() == "/player/seek") {
+    } else if (request->get_resource() == "/player/seek") {
       double timepos = ArgumentOrDefault<double>("seek", 0.0);
       as->get_mainplayer()->Seek(timepos);
     }

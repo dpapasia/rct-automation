@@ -16,22 +16,27 @@
 #ifndef HTTP_H
 #define HTTP_H
 
+#include <functional>
+#include <cstdlib>
 #include <stdexcept>
 #include <iostream>
-#include <boost/lexical_cast.hpp>
-#include <pion/net/HTTPServer.hpp>
-#include <pion/net/HTTPTypes.hpp>
-#include <pion/net/HTTPRequest.hpp>
-#include <pion/net/HTTPResponseWriter.hpp>
 #include <glog/logging.h>
+#include <set>
 #include "registerable-inl.h"
 #include "sqlite3.h"
-#include "json_protobuf.h"
+#include <google/protobuf/util/json_util.h>
+#include <pion/http/request.hpp>
+#include <pion/http/response_writer.hpp>
+#include <pion/tcp/connection.hpp>
 
-using namespace pion;
-using namespace pion::net;
+using HTTPRequestPtr = pion::http::request_ptr;
+using TCPConnectionPtr = pion::tcp::connection_ptr;
+using HTTPResponseWriterPtr = pion::http::response_writer_ptr;
+using HTTPTypes = pion::http::types;
 
 namespace google { namespace protobuf { class Message; } }
+
+template<class Type> Type ParseString(const std::string &arg);
 
 class WebAPI {
  public:
@@ -42,7 +47,7 @@ class WebAPI {
   WebAPI() {
   }
   virtual ~WebAPI();
-  typedef boost::function<void(HTTPRequestPtr&, TCPConnectionPtr&)> web_callback;
+  typedef std::function<void(HTTPRequestPtr, const TCPConnectionPtr&)> web_callback;
   REGISTER_REGISTRAR(WebAPI, web_callback);
   
  private:
@@ -50,9 +55,11 @@ class WebAPI {
 
 class WebCommand : public WebAPI::Registrar {
   virtual void handle_command(HTTPRequestPtr&, HTTPResponseWriterPtr, const std::string&) = 0;
-  void handle_command(HTTPRequestPtr&, TCPConnectionPtr& tcp_conn); 
+  void handle_command(HTTPRequestPtr, const TCPConnectionPtr& tcp_conn); 
   WebAPI::web_callback get_callback() {
-    return boost::bind<void>(&WebCommand::handle_command, this, _1, _2);
+    return [this](HTTPRequestPtr request, const TCPConnectionPtr& conn) {
+      handle_command(request, conn);
+    };
   }
  protected:
   void ReturnMessage(const google::protobuf::Message&);
@@ -60,7 +67,7 @@ class WebCommand : public WebAPI::Registrar {
   template<class Type>
   Type ArgumentOrDefault(const std::string &arg, Type default_retval) { 
     if (params_.count(arg)) {
-      return boost::lexical_cast<Type>(params_.equal_range(arg).first->second.c_str());
+      return ParseString<Type>(params_.equal_range(arg).first->second);
     } else {
       return default_retval;
     }
@@ -68,7 +75,7 @@ class WebCommand : public WebAPI::Registrar {
   
   template <class Type>
   Type LoadMessage() {
-    const std::string req(request_->getContent(), request_->getContentLength());
+    const std::string req(request_->get_content(), request_->get_content_length());
     std::string format;
     if (params_.count("format")) {
       format = params_.equal_range("format").first->second;
@@ -77,7 +84,7 @@ class WebCommand : public WebAPI::Registrar {
     }
     Type input;
     if (format == "json") {
-      json_protobuf::update_from_json(req, input);
+      google::protobuf::util::JsonStringToMessage(req, &input);
     } else if(format == "pb") {
       VLOG(5) << "Loading protobuf of size " << req.size();
       input.ParseFromString(req);
@@ -88,7 +95,7 @@ class WebCommand : public WebAPI::Registrar {
     return input;
   }
 
-  HTTPTypes::QueryParams params_;
+  pion::ihash_multimap params_;
   HTTPRequestPtr request_;
   HTTPResponseWriterPtr writer_;
   std::string remote_user_; 

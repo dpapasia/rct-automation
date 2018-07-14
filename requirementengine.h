@@ -16,7 +16,6 @@
 #ifndef REQUIREMENT_ENGINE_HEADER_H
 #define REQUIREMENT_ENGINE_HEADER_H
 
-#include "base.h"
 #include <sqlite3.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
@@ -45,7 +44,8 @@ class RequirementEngine {
   // Compute the effective schedule off of the stored and implicit
   automation::Schedule EffectiveSchedule();
 
-  DISALLOW_COPY_AND_ASSIGN(RequirementEngine);
+  RequirementEngine(const RequirementEngine&) = delete;
+  RequirementEngine& operator=(const RequirementEngine&) = delete;
   sqlite3 *db_;
 
   boost::mutex mutex_;

@@ -16,37 +16,33 @@
 
 
 #include <iostream>
-#include <pion/net/HTTPServer.hpp>
-#include <pion/net/HTTPTypes.hpp>
-#include <pion/net/HTTPRequest.hpp>
-#include <pion/net/HTTPResponseWriter.hpp>
 #include "http.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/message.h>
-#include <json/json.h>
-#include "json_protobuf.h"
+#include <google/protobuf/util/json_util.h>
+#include <pion/http/request.hpp>
+
+using HTTPRequestPtr = pion::http::request_ptr;
 
 using namespace std;
-using namespace pion;
-using namespace pion::net;
 
-void WebCommand::handle_command(HTTPRequestPtr& http_request, TCPConnectionPtr& tcp_conn) {
-  HTTPResponseWriterPtr
-    writer(HTTPResponseWriter::create(tcp_conn,
+void WebCommand::handle_command(HTTPRequestPtr http_request, const pion::tcp::connection_ptr& tcp_conn) {
+  pion::http::response_writer_ptr
+    writer(pion::http::response_writer::create(tcp_conn,
                                       *http_request,
-                                      boost::bind(&TCPConnection::finish,
+                                      boost::bind(&pion::tcp::connection::finish,
                                                   tcp_conn)));
-  HTTPResponse& r = writer->getResponse();
-  VLOG(60) << "Resource: " << http_request->getOriginalResource();
-  VLOG(60) << "Query string: " << http_request->getQueryString();
+  pion::http::response& r = writer->get_response();
+  VLOG(60) << "Resource: " << http_request->get_original_resource();
+  VLOG(60) << "Query string: " << http_request->get_query_string();
 
-  r.setStatusCode(HTTPTypes::RESPONSE_CODE_OK);
-  r.setStatusMessage(HTTPTypes::RESPONSE_MESSAGE_OK);
-  params_ = http_request->getQueryParams(); 
+  r.set_status_code(HTTPTypes::RESPONSE_CODE_OK);
+  r.set_status_message(HTTPTypes::RESPONSE_MESSAGE_OK);
+  params_ = http_request->get_queries();
   request_ = http_request;
   writer_ = writer;
-  SSL *cert = tcp_conn->getSSLSocket().impl()->ssl;
+  SSL *cert = tcp_conn->get_ssl_socket().impl()->ssl;
 
   if (cert) {
     X509 *info = SSL_get_peer_certificate(cert);
@@ -57,7 +53,7 @@ void WebCommand::handle_command(HTTPRequestPtr& http_request, TCPConnectionPtr& 
     }
   }
 
-  LOG(INFO) << "API command " << request_->getResource() << " from " << tcp_conn->getRemoteIp() << " " << remote_user_ << " running now...";
+  LOG(INFO) << "API command " << request_->get_resource() << " from " << tcp_conn->get_remote_ip() << " " << remote_user_ << " running now...";
   this->handle_command(http_request, writer, remote_user_);
 
   writer->send();
@@ -74,14 +70,27 @@ void WebCommand::ReturnMessage(const ::google::protobuf::Message& value) {
   if (format == "debugpb") {
     writer_ << value.DebugString();  
   } else if (format == "json") {
-    writer_->getResponse().setContentType("application/json");
-    Json::Value pt;
-    json_protobuf::convert_to_json(value, pt);
-    writer_ << pt;
+    writer_->get_response().set_content_type("application/json");
+    std::string output;
+    google::protobuf::util::JsonPrintOptions options;
+    options.add_whitespace = true;
+    google::protobuf::util::MessageToJsonString(value, &output, options);
+    writer_ << output;
     return;
   } else {
-    writer_->getResponse().setContentType("application/x-protobuf; desc=\"/pb/"+value.GetTypeName()+".desc\"; messageType=\""+value.GetTypeName()+"\";);");
+    writer_->get_response().set_content_type("application/x-protobuf; desc=\"/pb/"+value.GetTypeName()+".desc\"; messageType=\""+value.GetTypeName()+"\";);");
     writer_ << value.SerializeAsString();
     VLOG(5) << "Sent proto of size " << value.SerializeAsString().size() << " on wire";
   }
 } 
+
+template <>
+int64_t ParseString(const std::string &arg) {
+  return std::stoll(arg);
+}
+
+template <>
+double ParseString(const std::string &arg) {
+  return std::stod(arg);
+}
+

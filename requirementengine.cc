@@ -13,15 +13,11 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-#include "automationstate.h"
-#include "playlist.h"
 #include "requirementengine.h"
-#include "mplayersession.h"
 #include <string>
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
-#include "playlist.pb.h"
 #include "requirement.pb.h"
 #include "protostore.h"
 
@@ -113,7 +109,7 @@ void RequirementEngine::FillNext(automation::Schedule* next, time_t* deadline, t
            ++it) {
       if (IsDue(*it, target_time)) {
         *deadline = target_time;
-        *gap = min<time_t>(*gap, it->when().gap());
+        *gap = std::min<time_t>(*gap, it->when().gap());
         automation::Requirement *next_item = next->add_schedule();
         next_item->CopyFrom(*it);
       }
@@ -131,7 +127,7 @@ void RequirementEngine::RunBlock(time_t deadline, const automation::Schedule* ne
       if (it->internal_time_advance() < 0 && internal_time_advance > 0) {
         internal_time_advance = -1;
       } else {
-        internal_time_advance = max<int64>(internal_time_advance, it->internal_time_advance());
+        internal_time_advance = std::max<int64>(internal_time_advance, it->internal_time_advance());
       }
       std::string command_identifier = automation::Requirement::Command_descriptor()->FindValueByNumber(it->type())->name();
       if (cm.count(command_identifier)) {
