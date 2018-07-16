@@ -139,13 +139,13 @@ cc_binary(
   name = "acmd",
   srcs = ["acmd-main.cc"],
   deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags"],
-  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system"],
+  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lmpv"],
 )
 cc_binary(
   name = "automation",
   srcs = ["automation.cc"],
   deps = [":actions", ":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags", ":webapi"],
-  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lpion", "-llog4cpp", "-lboost_thread"],
+  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lpion", "-llog4cpp", "-lboost_thread", "-lmpv"],
 )
 
 

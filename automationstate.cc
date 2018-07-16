@@ -35,7 +35,6 @@ DEFINE_int32(sleepcutoff, 4, "If we have <= sleepcutoff seconds remaining after 
 DECLARE_string(bumpers);
 
 AutomationState *AutomationState::state_;
-__thread MplayerSession *AutomationState::player_;
 
 AutomationState::AutomationState(sqlite3* db, MplayerSession* player) :
   db_(db),
@@ -46,7 +45,6 @@ AutomationState::AutomationState(sqlite3* db, MplayerSession* player) :
   mainshow_(new Playlist(db)),
   bumperlist_(new Playlist(db)) {
 
-  player_ = main_player_;
   bumperlist_->NeverSave();
   mainshow_->NeverSave();
   override_playlist_->NeverSave();

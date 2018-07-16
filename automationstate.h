@@ -43,11 +43,7 @@ class AutomationState {
 
   // Returns a reference to the mplayersession object
   MplayerSession *get_player() {
-    if(player_ == NULL) {
-      VLOG(5) << "Creating new mplayer for thread";
-      player_ = new MplayerSession;
-    }
-    return player_;
+    return get_mainplayer();
   }
 
   MplayerSession *get_mainplayer() {
@@ -79,7 +75,6 @@ class AutomationState {
   sqlite3* const db_;
   std::shared_ptr<RequirementEngine> const re_;
 
-  static __thread MplayerSession* player_;
   MplayerSession* main_player_;
 
   bool override_;

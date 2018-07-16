@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <mpv/client.h>
 #ifdef USE_RE2
 #include <re2/re2.h>
 #else
@@ -43,6 +44,7 @@ bool PlayableItem::fetch(const std::string& filename) {
   canonical_.Clear();
   canonical_.set_filename(filename);
   bool result = Load(&canonical_);
+  LOG(INFO) << canonical_.DebugString();
 
   if (canonical_.has_filename() && !canonical_.has_duration()) {
     canonical_.set_duration(CalculateDuration());
@@ -83,8 +85,6 @@ bool PlayableItem::matches(const regex_t& re) {
 #endif
 
 int PlayableItem::CalculateDuration() {
-  pid_t child;
-  int pipefd[2];
   std::string filename;
   
   if (!canonical_.has_filename()) {
@@ -98,48 +98,31 @@ int PlayableItem::CalculateDuration() {
     LOG(INFO) << "Asked about duration of an invalid file " << filename;
     return -1;
   }
- 
-  CHECK(pipe2(pipefd, 0) == 0);
-  char buf[1000];
-  int duration;
-  int errorfd = open("/dev/null", O_WRONLY);
-  CHECK(errorfd != -1);
-  LOG(INFO) << "In CalculateDuration for " << filename;
-  duration = -1;
 
-  child = fork();
-  CHECK(child != -1);
-  if (!child) {
-    dup2(pipefd[1], STDOUT_FILENO);
-    dup2(errorfd, STDERR_FILENO);
-    for (int i = 3; i <= AUTOMATION_MAX_FD; ++i) {
-      close(i);
-    }
-    close(STDIN_FILENO);
-    execlp("mplayer", "", "-noconsolecontrols", "-ao", "pcm:file=/dev/null", filename.c_str(), NULL);
+  auto handle = mpv_create();
+  CHECK(mpv_initialize(handle) == 0);
+  int error = mpv_set_property_string(handle, "ao", "pcm"); //:file=/dev/null");
+  CHECK(mpv_observe_property(handle, 1, "duration", MPV_FORMAT_DOUBLE) == 0);
+  CHECK(error == 0) << mpv_error_string(error);
 
-  } else {
-    FILE *mplayer_stdout;
-    mplayer_stdout = fdopen(pipefd[0], "r");
-    close(pipefd[1]);
-    int status;
+  const char *args[3];
+  args[0] = "loadfile";
+  args[1] = filename.c_str();
+  args[2] = '\0';
 
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    std::cmatch res;
-    std::regex rx("A:[ ]*([0-9.]*)");
-
-    while (fgets(buf, sizeof(buf), mplayer_stdout) != NULL) {
-      std::string len(buf);
-      tokenizer tokens(len, boost::char_separator<char>("\r"));
-      for (tokenizer::const_iterator it = tokens.begin(); it != tokens.end(); ++it) {
-        if (std::regex_search(it->c_str(), res, rx)) {
-          duration = std::max<double>(duration,ceil(strtod(res[1].str().c_str(), NULL)));
-        }
+  mpv_command(handle, args);
+  double max = 0;
+  while (handle) {
+    mpv_event *event = mpv_wait_event(handle, 0.25);
+    if (event->event_id == MPV_EVENT_PROPERTY_CHANGE) {
+      mpv_event_property *prop = (mpv_event_property*)event->data;
+      if (strcmp(prop->name, "duration") == 0) {
+        max = *(double*)prop->data;
       }
     }
-    waitpid(child, &status, 0);
-    close(pipefd[0]);
-    close(errorfd);
+    if (event->event_id == MPV_EVENT_END_FILE) {
+      mpv_detach_destroy(handle);
+      return max;
+    }
   }
-  return duration;
 }

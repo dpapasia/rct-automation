@@ -273,7 +273,9 @@ class PlayerCommand : public WebCommand {
     if (request->get_resource() == "/player/pause" && as->get_manual_override()) {
       as->get_mainplayer()->Pause();
     } else if (request->get_resource() == "/player/stop") {
-      as->get_mainplayer()->Stop();
+      as->get_player()->Stop();
+    } else if (request->get_resource() == "/player/unpause") {
+      as->get_player()->Unpause();
     } else if (request->get_resource() == "/player/state") {
       automation::PlayerState ps;
       as->get_mainplayer()->MergeState(&ps);

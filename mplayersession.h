@@ -21,6 +21,7 @@
 #include <string>
 #include "base.h"
 #include <boost/thread/mutex.hpp>
+#include <mpv/client.h>
 #include "playerstate.pb.h"
 #include "playableitem.h"
 
@@ -45,19 +46,13 @@ class MplayerSession {
  private:
   bool is_timedout();
 
-  std::string GetProperty(std::string property);
   DISALLOW_COPY_AND_ASSIGN(MplayerSession);
 
   // mutex_ guards everything except state_.  It should be held
   // by anything that's interacting with the child mplayer process.
   boost::mutex mutex_;
-  FILE *slave_pipe_;
-  FILE *mplayer_stdout_;
-  int mplayer_fd_;
-  int errorfd_;
-  int mplayer_pid_;
-  int last_alive_;
-
+  mpv_handle* mpv_;
+ 
   // state_mutex_ guards the automation::PlayerState that contains information
   // about our current state.
   boost::mutex state_mutex_;
