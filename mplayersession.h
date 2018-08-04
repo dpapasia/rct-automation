@@ -37,6 +37,7 @@ class MplayerSession {
 
   void Pause();
   void Unpause();
+  void PauseToggle();
   void Stop();
   void SetSpeed(double speed);
   void Seek(double timepos);

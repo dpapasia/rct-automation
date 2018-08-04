@@ -271,6 +271,8 @@ class PlayerCommand : public WebCommand {
   void handle_command(HTTPRequestPtr& request, HTTPResponseWriterPtr writer, const std::string& remote_user) {
     AutomationState *as = AutomationState::get_state();
     if (request->get_resource() == "/player/pause" && as->get_manual_override()) {
+      as->get_mainplayer()->PauseToggle();
+    } else if (request->get_resource() == "/player/onlypause" && as->get_manual_override()) {
       as->get_mainplayer()->Pause();
     } else if (request->get_resource() == "/player/stop") {
       as->get_player()->Stop();

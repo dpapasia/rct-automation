@@ -117,11 +117,16 @@ void MplayerSession::Unpause() {
   LOG(INFO) << "in unpause";
 
   mpv_set_property(mpv_, "pause", MPV_FORMAT_FLAG, &desired);
+}
 
-  boost::mutex::scoped_lock state_lock(state_mutex_);
-  state_.set_paused(false);
+void MplayerSession::PauseToggle() {
+  int desired;
 
-  return; 
+  {
+    boost::mutex::scoped_lock state_lock(state_mutex_);
+    desired = state_.paused() ? 0 : 1;
+  }
+  mpv_set_property(mpv_, "pause", MPV_FORMAT_FLAG, &desired);
 }
 
 void MplayerSession::Stop() {
