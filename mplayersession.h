@@ -48,16 +48,12 @@ class MplayerSession {
 
   DISALLOW_COPY_AND_ASSIGN(MplayerSession);
 
-  // mutex_ guards everything except state_.  It should be held
-  // by anything that's interacting with the child mplayer process.
-  boost::mutex mutex_;
   mpv_handle* mpv_;
  
   // state_mutex_ guards the automation::PlayerState that contains information
   // about our current state.
   boost::mutex state_mutex_;
   automation::PlayerState state_;
-
 };
 
 #endif

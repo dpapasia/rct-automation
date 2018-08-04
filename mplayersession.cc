@@ -70,7 +70,7 @@ bool MplayerSession::Play(const automation::PlayableItem& item) {
     mpv_set_property_string(mpv_, "cache", cache);
     mpv_set_property_string(mpv_, "length", endpos);
   } else {
-    //mpv_set_property_string(mpv_, "cache", "0");
+    mpv_set_property_string(mpv_, "cache", "0");
   }
 
   const char *args[3];
@@ -92,7 +92,7 @@ bool MplayerSession::Play(const automation::PlayableItem& item) {
       }
       state_lock.lock();
       if (strcmp(prop->name, "pause") == 0) {
-        //state_.set_paused(*(bool *)prop->data);
+        state_.set_paused(*(bool *)prop->data);
 			}
 			if (!strcmp(prop->name, "time-pos")) {
         state_.set_time_pos(*(double *)prop->data);
@@ -106,24 +106,19 @@ bool MplayerSession::Play(const automation::PlayableItem& item) {
 }
 
 void MplayerSession::Pause() {
-  boost::mutex::scoped_lock player_lock(mutex_);
-  boost::mutex::scoped_lock state_lock(state_mutex_);
   VLOG(5) << "in player pause";
 
   int desired = 1;
 
   mpv_set_property(mpv_, "pause", MPV_FORMAT_FLAG, &desired);
-  state_.set_paused(true);
-
-  state_lock.unlock();
 }
 void MplayerSession::Unpause() {
-  boost::mutex::scoped_lock player_lock(mutex_);
-  boost::mutex::scoped_lock state_lock(state_mutex_);
   int desired = 0;
   LOG(INFO) << "in unpause";
 
   mpv_set_property(mpv_, "pause", MPV_FORMAT_FLAG, &desired);
+
+  boost::mutex::scoped_lock state_lock(state_mutex_);
   state_.set_paused(false);
 
   return; 
@@ -140,11 +135,9 @@ void MplayerSession::MergeState(automation::PlayerState* dest) {
 }
 
 void MplayerSession::SetSpeed(double speed) {
-  boost::mutex::scoped_lock Lock(mutex_);
   CHECK(mpv_set_property(mpv_, "speed", MPV_FORMAT_DOUBLE, &speed) == 0);
 }
 void MplayerSession::Seek(double timepos) {
-  boost::mutex::scoped_lock Lock(mutex_);
   CHECK(mpv_set_property(mpv_, "time_pos", MPV_FORMAT_DOUBLE, &timepos) == 0);
 }
   

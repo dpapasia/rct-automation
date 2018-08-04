@@ -148,4 +148,9 @@ cc_binary(
   linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lpion", "-llog4cpp", "-lboost_thread", "-lmpv"],
 )
 
+load("@io_bazel_rules_docker//cc:image.bzl", "cc_image")
 
+cc_image(
+  name = "automation_image",
+  binary = ":automation"
+)

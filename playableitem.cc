@@ -125,4 +125,5 @@ int PlayableItem::CalculateDuration() {
       return max;
     }
   }
+  return -1;
 }
