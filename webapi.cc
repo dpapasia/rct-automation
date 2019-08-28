@@ -39,11 +39,6 @@ DEFINE_bool(expose_sql, true, "If false, disable the /sql webapi endpoint.");
 DECLARE_string(legalid);
 std::string WebAPI::apikey;
 
-bool WebAPI::ReadFromDatabase(sqlite3 *db) {
-  WebAPI::apikey = "hello this i sa test";
-
-  return true;
-}
 
 class OverrideCommand : public WebCommand {
   const std::string get_command() { return "/override"; }
