@@ -139,11 +139,17 @@ automation::Playlist Playlist::Filter(const std::string& regexp) const {
 
 bool Playlist::Fetch() {
   SetTable("Playlists_random_weight");
-  boost::mutex::scoped_lock lock(mutex_);
+  std::string target;
 
-  canonical_.Clear();
-  bool result = Load(&canonical_);
-  return FetchShuffled(canonical_.name());
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    canonical_.Clear();
+    Load(&canonical_);
+    target = canonical_.name();
+  }
+
+  return FetchShuffled(target);
 }
 
 bool Playlist::Fetch(const std::string& playlistname) {
