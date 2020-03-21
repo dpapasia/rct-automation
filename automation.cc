@@ -111,7 +111,6 @@ int main(int argc, char **argv) {
     LOG(WARNING) << "Unable to truncate locked playlist list.";
   }
 
-  WebAPI::ReadFromDatabase(db);
   MplayerSession mp;
   
   fclose(stdin);

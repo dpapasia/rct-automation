@@ -22,6 +22,7 @@
 #include <sstream>
 #include <glog/logging.h>
 #include <stdint.h>
+#include <vector>
 
 #include "playableitem.h"
 #include "playlist.h"
@@ -33,14 +34,14 @@ using automation::ProtoStore;
 automation::Playlists Playlist::FetchAllLists(sqlite3 *db) {
   automation::ProtoStore<automation::Playlist> pstore(db, "Playlists_with_size");
 
-  vector<automation::Playlist> playlists;
+  std::vector<automation::Playlist> playlists;
   pstore.LoadAll(&playlists, INT64_MAX, 0);
 
   automation::Playlists list;
 
-  for (vector<automation::Playlist>::iterator it = playlists.begin(); it != playlists.end(); ++it) {
+  for (const auto& playlist : playlists) {
     automation::Playlist *next = list.add_item();
-    next->CopyFrom(*it);
+    *next = std::move(playlist);
   }
   return list; 
 }

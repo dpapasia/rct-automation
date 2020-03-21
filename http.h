@@ -42,7 +42,6 @@ class WebAPI {
  public:
   static std::string apikey;
   static std::set<std::string> superusers;
-  static bool ReadFromDatabase(sqlite3 *db);
   static bool is_superuser(std::string username);
   WebAPI() {
   }
