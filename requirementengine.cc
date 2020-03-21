@@ -13,7 +13,9 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+
 #include "requirementengine.h"
+#include <algorithm>
 #include <string>
 #include <glog/logging.h>
 #include <gflags/gflags.h>
@@ -69,15 +71,12 @@ void RequirementEngine::CheckValidity() {
 void RequirementEngine::HandleReboot() {
   boost::mutex::scoped_lock lock(mutex_);
   automation::Schedule effective = EffectiveSchedule();
-  RepeatedPtrField<automation::Requirement>* reqlist = effective.mutable_schedule();
   automation::Schedule reboot_commands;
   VLOG(1) << "automation comes alive!";
-  for (RepeatedPtrField<automation::Requirement>::iterator it = reqlist->begin();
-         it != reqlist->end();
-         ++it) {
-    if (it->reboot()) {
+  for (const automation::Requirement& req : effective.schedule()) {
+    if (req.reboot()) {
       automation::Requirement *p = reboot_commands.add_schedule();
-      p->CopyFrom(*it);
+      p->CopyFrom(req);
       p->set_internal_time_advance(-1);
     }
   }
@@ -104,14 +103,12 @@ void RequirementEngine::FillNext(automation::Schedule* next, time_t* deadline, t
  
   for(int target_time = internal_time_ ; target_time < internal_time_ + 86400*7 && !next->schedule_size() ; ++target_time) {
     const RepeatedPtrField<automation::Requirement>& reqlist = effective.schedule();
-    for (RepeatedPtrField<automation::Requirement>::const_iterator it = reqlist.begin();
-           it != reqlist.end();
-           ++it) {
-      if (IsDue(*it, target_time)) {
+    for (const automation::Requirement& req : reqlist) {
+      if (IsDue(req, target_time)) {
         *deadline = target_time;
-        *gap = std::min<time_t>(*gap, it->when().gap());
+        *gap = std::min<time_t>(*gap, req.when().gap());
         automation::Requirement *next_item = next->add_schedule();
-        next_item->CopyFrom(*it);
+        next_item->CopyFrom(req);
       }
     }
   }
@@ -121,17 +118,15 @@ void RequirementEngine::RunBlock(time_t deadline, const automation::Schedule* ne
     RequirementEngine::Registrar::CallbackMap &cm = RequirementEngine::Registrar::get_callbackmap();
     int internal_time_advance = 1;
  
-    for (RepeatedPtrField<automation::Requirement>::const_iterator it = next->schedule().begin();
-           it != next->schedule().end();
-           ++it) {
-      if (it->internal_time_advance() < 0 && internal_time_advance > 0) {
+    for (const automation::Requirement& req : next->schedule()) {
+      if (req.internal_time_advance() < 0 && internal_time_advance > 0) {
         internal_time_advance = -1;
       } else {
-        internal_time_advance = std::max<int64>(internal_time_advance, it->internal_time_advance());
+        internal_time_advance = std::max<int64>(internal_time_advance, req.internal_time_advance());
       }
-      std::string command_identifier = automation::Requirement::Command_descriptor()->FindValueByNumber(it->type())->name();
+      std::string command_identifier = automation::Requirement::Command_descriptor()->FindValueByNumber(req.type())->name();
       if (cm.count(command_identifier)) {
-        cm[command_identifier](deadline, *it);
+        cm[command_identifier](deadline, req);
       } else {
         LOG(ERROR) << "Unknown comand " << command_identifier;
       }
@@ -148,65 +143,31 @@ bool RequirementEngine::IsDue(const automation::Requirement& item, time_t candid
   struct tm time_spec;
   localtime_r(&candidate_time, &time_spec); 
 
+  // Helper lambda - checks a repeated field of constraints and returns
+  // true if it's required. Empty constraints will always return true.
+  auto check_constraint = [](const RepeatedField<int64>& constraints, int value) {
+    if (constraints.empty()) return true;
+
+    return std::any_of(constraints.begin(), constraints.end(), [value](int64 cmp) {
+      return cmp == value;
+    });
+  };
+
   const automation::TimeSpecification time = item.when();
-  if (time.only_at_times_size()) {
-    for (RepeatedField<int64>::const_iterator it = time.only_at_times().begin(); it != time.only_at_times().end(); ++it) {
-      if (*it == candidate_time) {
-        return true;
-      }
-    }
-    return false;
+
+  // This case is different; if only_at_times is present and it
+  // satisfies the constraint, we return early instead of checking
+  // other contraints.
+  if (!time.only_at_times().empty()) {
+    if (check_constraint(time.only_at_times(), candidate_time)) return true;
   }
-  if (time.constrained_dom_size()) {
-    bool constraint_met = false;
-    for (RepeatedField<int64>::const_iterator it = time.constrained_dom().begin(); it != time.constrained_dom().end(); ++it) {
-      if (*it == time_spec.tm_mday) {
-        constraint_met = true;
-        break;
-      }
-    }
-    if (!constraint_met) return false;
-  }
-  if (time.constrained_dow_size()) {
-    bool constraint_met = false;
-    for (RepeatedField<int64>::const_iterator it = time.constrained_dow().begin(); it != time.constrained_dow().end(); ++it) {
-      if (*it == time_spec.tm_wday) {
-        constraint_met = true;
-        break;
-      }
-    }
-    if (!constraint_met) return false;
-  }
-  if (time.constrained_hours_size()) {
-    bool constraint_met = false;
-    for (RepeatedField<int64>::const_iterator it = time.constrained_hours().begin(); it != time.constrained_hours().end(); ++it) {
-      if (*it == time_spec.tm_hour) {
-        constraint_met = true;
-        break;
-      }
-    }
-    if (!constraint_met) return false;
-  }
-  if (time.constrained_minutes_size()) {
-    bool constraint_met = false;
-    for (RepeatedField<int64>::const_iterator it = time.constrained_minutes().begin(); it != time.constrained_minutes().end(); ++it) {
-      if (*it == time_spec.tm_min) {
-        constraint_met = true;
-        break;
-      }
-    }
-    if (!constraint_met) return false;
-  }
-  if (time.constrained_seconds_size()) {
-    bool constraint_met = false;
-    for (RepeatedField<int64>::const_iterator it = time.constrained_seconds().begin(); it != time.constrained_seconds().end(); ++it) {
-      if (*it == time_spec.tm_sec) {
-        constraint_met = true;
-        break;
-      }
-    }
-    if (!constraint_met) return false;
-  }
+
+  if (!check_constraint(time.constrained_dom(), time_spec.tm_mday)) return false;
+  if (!check_constraint(time.constrained_dow(), time_spec.tm_wday)) return false;
+  if (!check_constraint(time.constrained_hours(), time_spec.tm_hour)) return false;
+  if (!check_constraint(time.constrained_minutes(), time_spec.tm_min)) return false;
+  if (!check_constraint(time.constrained_seconds(), time_spec.tm_sec)) return false;
+
   return true;
 }
 

@@ -65,7 +65,8 @@ void Playlist::PopWithTimelimit(int seconds, PlayableItem *result) {
   RepeatedField<int64>* songlist = canonical_.mutable_playableitemid();
   LOG(INFO) << "In playlist " << canonical_.name() << " for " << seconds << " of time with up to "
             << size_locked() << " choices";
-
+  // Advance through songlist, loading each into result. If it satisfies our
+  // duration constraint, zero it out (so it won't be reused) and return.
   for (int64& song : *songlist) {
     if (song == 0) { continue; }
     result->Fetch(song);
@@ -83,10 +84,10 @@ void Playlist::PopFront(PlayableItem *result) {
   RepeatedField<int64>* songlist = canonical_.mutable_playableitemid();
   PlayableItem item(db_);
 
-  for (list_type::iterator it = songlist->begin(); it != songlist->end(); ++it) {
-    if (*it == 0) { continue; }
-    result->Fetch(*it);
-    *it = 0;
+  for (int64& song : *songlist) {
+    if (song == 0) { continue; }
+    result->Fetch(song);
+    song = 0;
     return;
   }
   result->Clear();
@@ -125,8 +126,8 @@ automation::Playlist Playlist::Filter(const std::string& regexp) const {
   const RepeatedField<int64>& songlist = canonical_.playableitemid();
   PlayableItem item(db_);
 
-  for (list_type::const_iterator it = songlist.begin(); it != songlist.end(); ++it) {
-    item.Fetch(*it);
+  for (const int64& song : songlist) {
+    item.Fetch(song);
     if (item.matches(re)) {
       automation::PlayableItem *newitem = result.add_items();
       newitem->CopyFrom(item.data());
@@ -207,10 +208,9 @@ std::string Playlist::Name() const {
   return canonical_.name();
 }
 int Playlist::size_locked() const {
-  const RepeatedField<int64>& songlist = canonical_.playableitemid();
   int size = 0;
-  for (list_type::const_iterator it = songlist.begin(); it != songlist.end(); ++it) {
-    if (*it) {
+  for (const int64& song : canonical_.playableitemid()) {
+    if (song) {
       size++;
     } 
   } 
