@@ -143,9 +143,8 @@ bool Playlist::Fetch() {
 
   canonical_.Clear();
   bool result = Load(&canonical_);
-  SetTable("Playlists");
-  return result;
-} 
+  return FetchShuffled(canonical_.name());
+}
 
 bool Playlist::Fetch(const std::string& playlistname) {
   SetTable("Playlists_with_children");
@@ -158,15 +157,13 @@ bool Playlist::Fetch(const std::string& playlistname) {
   return result;
 }
 bool Playlist::FetchShuffled(const std::string& playlistname) {
-  SetTable("Playlists_with_shuffled_children");
+  bool result = Fetch(playlistname);
+  std::random_shuffle(canonical_.mutable_playableitemid()->begin(),
+                      canonical_.mutable_playableitemid()->end());
 
-  boost::mutex::scoped_lock lock(mutex_);
-  canonical_.Clear();
-  canonical_.set_name(playlistname);
-  bool result = Load(&canonical_);
-  SetTable("Playlists");
   return result;
 }
+
 bool Playlist::FetchSuperlist(long long limit, long long offset) {
   char buf[1024];
 

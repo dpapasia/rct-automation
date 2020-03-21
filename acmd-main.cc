@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
   if (FLAGS_command == "list") {
     printf("%s", Playlist::FetchAllLists(db).DebugString().c_str());
   } else if (FLAGS_command == "load") {
-    char buf[512];
+    char buf[1024];
     while (fgets(buf, sizeof(buf), stdin)) {
       if (buf[strlen(buf)-1] == '\n') {
         buf[strlen(buf)-1] = '\0';

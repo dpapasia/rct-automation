@@ -68,12 +68,6 @@ void InitializeSchema(sqlite3 *db) {
 "                JOIN (SELECT * From PlayableItem ORDER BY PlayableItem.duration DESC,RANDOM()) USING(PlayableItemID) "
 "  GROUP BY PlaylistID;"
 
-"CREATE VIEW Playlists_with_shuffled_children AS "
-"  SELECT Playlist.*,group_concat(Playlist_PlayableItemID.PlayableItemID) "
-"                      AS PlayableItemID "
-"  FROM Playlist JOIN Playlist_PlayableItemID USING(PlaylistID) "
-"                JOIN (SELECT * From PlayableItem ORDER BY PlayableItem.playcount ASC,RANDOM()) USING(PlayableItemID) "
-"  GROUP BY PlaylistID;"
 
 "CREATE VIEW Playlists_with_size AS "
 "  SELECT Playlist.*,count(Playlist_PlayableItemID.PlayableItemID) "
@@ -81,9 +75,10 @@ void InitializeSchema(sqlite3 *db) {
 "  FROM Playlist JOIN Playlist_PlayableItemID USING(PlaylistID) "
 "GROUP BY PlaylistID;"
 "CREATE VIEW Playlists_random_weight AS "
-"  SELECT * FROM Playlists_with_shuffled_children WHERE (select 1+abs(random() % sum(weight)) From Playlist) "
-"    <= (select sum(weight) FROM Playlist p2 WHERE p2.PlaylistID <= Playlists_with_shuffled_children.PlaylistID) "
+"  SELECT * FROM Playlists_with_children WHERE (select 1+abs(random() % sum(weight)) From Playlist) "
+"    <= (select sum(weight) FROM Playlist p2 WHERE p2.PlaylistID <= Playlists_with_children.PlaylistID) "
 "  ORDER BY weight DESC limit 1;";
+
 
   CHECK(sqlite3_exec(db, schema.c_str(), NULL, NULL, NULL) == SQLITE_OK) << sqlite3_errmsg(db);
 }
