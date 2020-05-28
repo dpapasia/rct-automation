@@ -105,10 +105,11 @@ int PlayableItem::CalculateDuration() {
   CHECK(mpv_observe_property(handle, 1, "duration", MPV_FORMAT_DOUBLE) == 0);
   CHECK(error == 0) << mpv_error_string(error);
 
-  const char *args[3];
-  args[0] = "loadfile";
-  args[1] = filename.c_str();
-  args[2] = '\0';
+  const char *args[] = {
+    "loadfile",
+    filename.c_str(),
+    nullptr
+  };
 
   mpv_command(handle, args);
   double max = 0;

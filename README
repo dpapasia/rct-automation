@@ -23,7 +23,7 @@ First, install the following packages:
   % apt-get install libpion-net-dev libboost-dev cmake liblog4cpp5-dev \
                 libsqlite3-dev libssl-dev libboost-thread-dev \
                 libboost-system-dev libboost-regex-dev sqlite3 git \
-                libprotobuf-dev libjsoncpp-dev
+                libprotobuf-dev libjsoncpp-dev libmpv-dev
 
 If you're lucky, you may be able to just run 'make' at this point.
 

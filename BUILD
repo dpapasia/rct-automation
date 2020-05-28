@@ -134,12 +134,13 @@ cc_library(
   name = "webapi",
   srcs = ["webapi.cc"],
   deps = [":automationstate", ":http", ":db", ":sql_cc_proto"],
+  alwayslink = 1,
 )
 cc_binary(
   name = "acmd",
   srcs = ["acmd-main.cc"],
   deps = [":db", ":base", ":automationstate", ":http", ":mplayersession", ":playableitem", ":playlist", ":requirementengine", ":playlist_cc_proto", ":protostore", "@com_github_gflags_gflags//:gflags"],
-  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-lboost_system", "-lmpv"],
+  linkopts = ["-lsqlite3", "-lssl", "-lcrypto", "-llog4cpp", "-lboost_system", "-lmpv"],
 )
 cc_binary(
   name = "automation",

@@ -73,10 +73,9 @@ bool MplayerSession::Play(const automation::PlayableItem& item) {
     mpv_set_property_string(mpv_, "cache", "0");
   }
 
-  const char *args[3];
-  args[0] = "loadfile";
-  args[1] = item.filename().c_str();
-  args[2] = '\0';
+  const char *args[] = {
+    "loadfile", item.filename().c_str(), nullptr
+  };
 
  
   CHECK(mpv_command(mpv_, args) == 0);
